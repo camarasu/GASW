@@ -164,6 +164,20 @@ function uploadFile {
     fi
 }
 
+function uploadGirderFile {
+    local URI=$1
+    local fileName=$2
+    local proto="girder"
+    local url=`echo $URI | awk -F 'girder://' '{print $2}'`
+    local token=`echo $url | awk -F '@' '{print $1}'`
+    local host=`echo $url | awk -F '@' '{print $2}' | cut -d? -f1`
+    local folderId=`echo $url | awk -F 'folderId=' '{print $2}' | cut -d? -f1`
+    local hostProto=`echo $url | awk -F 'hostProto=' '{print $2}' | cut -d? -f1`
+    COMMLINE="girder-client --api-url ${hostProto}://${host} -token ${token} upload --parent-type folder ${fileId} ${fileName}"
+    echo "uploadGirderFile, command line is ${COMMLINE}"
+    ${COMMLINE}
+}
+
 function upload {
 
     local LFN=$1
@@ -173,21 +187,27 @@ function upload {
 #set( $fileName = '${LFN##*/}' )
     local NAME=${fileName}
 
-    if [ "${TEST}" = "true" ]
-    then
-        LFN=${LFN}-uploadTest
-        echo "test result" > ${NAME}
-    fi
-
     startLog file_upload lfn="${LFN}"
-
-    uploadFile ${LFN}${ID} ${PWD}/${NAME} ${NREP}
-    renameFile ${LFN}${ID} ${LFN}
-
-    if [ "${TEST}" = "true" ]
+    
+    if [[ ${LFN} == girder* ]]
     then
-        \rm -f ${NAME}
-    fi
+            uploadGirderFile $LFN $NAME
+    else
 
+        if [ "${TEST}" = "true" ]
+        then
+            LFN=${LFN}-uploadTest
+            echo "test result" > ${NAME}
+        fi
+
+
+        uploadFile ${LFN}${ID} ${PWD}/${NAME} ${NREP}
+        renameFile ${LFN}${ID} ${LFN}
+
+        if [ "${TEST}" = "true" ]
+        then
+            \rm -f ${NAME}
+        fi
+    fi
     stopLog file_upload
 }

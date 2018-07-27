@@ -89,6 +89,21 @@ function downloadLFN {
 }
 export -f downloadLFN
 
+function downloadGirderFile {
+    local URI=$1
+    local proto="girder"
+    local url=`echo $URI | awk -F 'girder://' '{print $2}'`
+    local token=`echo $url | awk -F '@' '{print $1}'`
+    local host=`echo $url | awk -F '@' '{print $2}' | cut -d? -f1`
+    local fileId=`echo $url | awk -F 'fileId=' '{print $2}' | cut -d? -f1`
+    local fileName=`echo $url | awk -F 'fileName=/' '{print $2}' | cut -d? -f1`
+    local hostProto=`echo $url | awk -F 'hostProto=' '{print $2}' | cut -d? -f1`
+    COMMLINE="girder-client --api-url ${hostProto}://${host} -token ${token} download --parent-type file ${fileId} ${fileName}"
+    echo "downloadGirderFile, command line is ${COMMLINE}"
+    ${COMMLINE} 
+ }
+export -f downloadGirderFile
+
 function downloadURI {
 
     local URI=$1
@@ -114,6 +129,12 @@ function downloadURI {
     then
         curl --insecure -O ${URI}
         validateDownload "Cannot download HTTP file"
+    fi
+
+    if [[ ${URI_LOWER} == girder* ]]
+    then
+        downloadGirderFile $URI
+        validateDownload "Cannot download Girder file"
     fi
 }
 
